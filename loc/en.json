@@ -1,0 +1,39 @@
+{
+    "low_violence_mode_options": "Low Violence Mode",
+    "low_violence_mode_options_title": "Low Violence Mode",
+    "low_violence_mode_options_desc": "Configure low-violence and performance options.",
+
+    "low_violence_mode_choice_off": "Off",
+    "low_violence_mode_choice_after_ragdoll": "After Ragdoll",
+    "low_violence_mode_choice_timer": "Timer",
+    "low_violence_mode_choice_decals": "Decals",
+    "low_violence_mode_choice_hit_effects": "Hit Effects",
+    "low_violence_mode_choice_splatter": "Splatter",
+    "low_violence_mode_choice_both": "All",
+
+    "low_violence_mode_corpses_mode_title": "Block Corpses",
+    "low_violence_mode_corpses_mode_desc": "Choose how corpses are blocked.",
+    "low_violence_mode_corpse_timer_title": "Corpse Timer",
+    "low_violence_mode_corpse_timer_desc": "Seconds before timer-mode corpses are removed. Set to 0 for immediate removal.",
+
+    "low_violence_mode_bullet_effects_mode_title": "Block Bullet Effects",
+    "low_violence_mode_bullet_effects_mode_desc": "Choose which bullet impact visuals to block.",
+
+    "low_violence_mode_blood_effects_mode_title": "Block Blood Effects",
+    "low_violence_mode_blood_effects_mode_desc": "Choose which blood impact visuals to block.",
+
+    "low_violence_mode_block_magazines_title": "Block Magazines",
+    "low_violence_mode_block_magazines_desc": "Prevent dropped magazine objects from spawning.",
+
+    "low_violence_mode_block_shields_title": "Block Shields",
+    "low_violence_mode_block_shields_desc": "Set enemy shield limit and shield disposal lifetime to 0.",
+
+    "low_violence_mode_block_helmets_title": "Block Helmets",
+    "low_violence_mode_block_helmets_desc": "Prevent headshot and explosion head-gadget spawns.",
+
+    "low_violence_mode_block_dozer_fallen_plates_title": "Block Dozer Fallen Plates",
+    "low_violence_mode_block_dozer_fallen_plates_desc": "Prevent dozer armor plate debris from spawning.",
+
+    "low_violence_mode_reduce_shotgun_spam_title": "Reduce Crew Shotgun Spam",
+    "low_violence_mode_reduce_shotgun_spam_desc": "Reduce crew shotgun ray count to 1."
+}

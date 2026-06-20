@@ -1,0 +1,57 @@
+{
+    "name" : "LowViolenceMode",
+    "description" : "Reduces combat visual clutter",
+    "author" : "Perry",
+    "version" : "1.0.0",
+    "blt_version" : 2,
+    "updates" : [
+        {
+            "identifier" : "perry519.low_violence_mode",
+            "host" : {
+                "meta" : "https://raw.githubusercontent.com/perry519/LowViolenceMode/main/update_meta.json"
+            }
+        }
+    ],
+    "hooks" : [
+        {
+            "hook_id" : "lib/managers/localizationmanager",
+            "script_path" : "modules/localization/localizationmanager.lua"
+        },
+        {
+            "hook_id" : "lib/managers/enemymanager",
+            "script_path" : "modules/features/enemies/enemymanager.lua"
+        },
+        {
+            "hook_id" : "lib/managers/gameplaycentralmanager",
+            "script_path" : "modules/features/decals/gameplaycentralmanager.lua"
+        },
+        {
+            "hook_id" : "lib/units/enemies/cop/copdamage",
+            "script_path" : "modules/features/enemies/copdamage.lua"
+        },
+        {
+            "hook_id" : "core/lib/managers/coresequencemanager",
+            "script_path" : "modules/features/enemies/dozerfallenplates.lua"
+        },
+        {
+            "hook_id" : "lib/units/enemies/cop/copmovement",
+            "script_path" : "modules/features/magazines/copmovement.lua"
+        },
+        {
+            "hook_id" : "lib/units/beings/player/huskplayermovement",
+            "script_path" : "modules/features/magazines/huskplayermovement.lua"
+        },
+        {
+            "hook_id" : "lib/units/weapons/cosmeticsweaponbase",
+            "script_path" : "modules/features/magazines/cosmeticsweaponbase.lua"
+        },
+        {
+            "hook_id" : "lib/tweak_data/weapontweakdata",
+            "script_path" : "modules/features/weapons/weapontweakdata.lua"
+        },
+        {
+            "hook_id" : "lib/managers/menumanager",
+            "script_path" : "modules/menu/menumanager.lua"
+        }
+    ]
+}

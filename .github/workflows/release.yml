@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package mod
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Validate release version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="$(jq -r '.version' mod.txt)"
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" != "v${VERSION}" ]]; then
+            echo "::error::tag (${GITHUB_REF_NAME}) does not match mod version (v${VERSION})"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Generate update metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ident="$(jq -r '.updates[0].identifier // empty' mod.txt)"
+          version="$(jq -r '.version' mod.txt)"
+          repo="$GITHUB_REPOSITORY"
+
+          if [[ -z "$ident" ]]; then
+            echo "has_update_metadata=false" >> "$GITHUB_ENV"
+            echo "No mod.txt updates[0].identifier configured; skipping update metadata."
+            exit 0
+          fi
+
+          mkdir -p generated
+          jq -n \
+            --arg ident "$ident" \
+            --arg version "$version" \
+            --arg download_url "https://github.com/$repo/releases/download/v$version/LowViolenceMode.zip" \
+            --arg patchnotes_url "https://github.com/$repo/releases/tag/v$version" \
+            '[{
+              ident: $ident,
+              version: $version,
+              download_url: $download_url,
+              patchnotes_url: $patchnotes_url
+            }]' > generated/update_meta.json
+
+          echo "has_update_metadata=true" >> "$GITHUB_ENV"
+
+      - name: Build SuperBLT zip
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf package LowViolenceMode.zip
+          mkdir -p package/LowViolenceMode
+          cp -R loc mod.txt modules package/LowViolenceMode/
+
+          if [[ "${has_update_metadata}" == "true" ]]; then
+            cp generated/update_meta.json package/LowViolenceMode/update_meta.json
+          fi
+
+          cd package
+          zip -r ../LowViolenceMode.zip LowViolenceMode
+
+      - name: Get previous tag
+        id: previous-tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+          previous_tag="$(git --no-pager tag --sort=creatordate --merged "${GITHUB_REF_NAME}" | grep -v "^${GITHUB_REF_NAME}$" | tail -1 || true)"
+          echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog
+        id: changelog
+        if: ${{ steps.previous-tag.outputs.previous_tag != '' }}
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          fromTag: ${{ github.ref_name }}
+          toTag: ${{ steps.previous-tag.outputs.previous_tag }}
+          writeToFile: false
+          restrictToTypes: feat,fix,perf
+          useGitmojis: false
+          includeInvalidCommits: false
+
+      - name: Write release notes
+        env:
+          CHANGELOG: ${{ steps.changelog.outputs.changes }}
+          PREVIOUS_TAG: ${{ steps.previous-tag.outputs.previous_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          printf 'Low Violence Mode %s\n' "$version" > release-notes.md
+
+          if [[ -n "$CHANGELOG" ]]; then
+            printf '\n%s\n' "$CHANGELOG" >> release-notes.md
+          elif [[ -z "$PREVIOUS_TAG" ]]; then
+            printf '\nInitial release.\n' >> release-notes.md
+          else
+            printf '\nMaintenance release.\n' >> release-notes.md
+          fi
+
+      - name: Upload release asset
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          assets=(LowViolenceMode.zip)
+          if [[ "${has_update_metadata}" == "true" ]]; then
+            assets+=(generated/update_meta.json)
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file release-notes.md
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$TAG" "${assets[@]}" \
+              --title "$TAG" \
+              --notes-file release-notes.md
+          fi
+
+      - name: Publish update metadata
+        if: ${{ env.has_update_metadata == 'true' }}
+        env:
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cp generated/update_meta.json update_meta.json
+
+          if git diff --quiet -- update_meta.json; then
+            echo "update_meta.json already matches $TAG"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add update_meta.json
+          git commit -m "chore: update release metadata for $TAG"
+          git push origin HEAD:main
