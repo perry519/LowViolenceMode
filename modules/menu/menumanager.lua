@@ -243,6 +243,7 @@ end)
 
 Hooks:Add("MenuManagerBuildCustomMenus", "LowViolenceMode_BuildCustomMenus", function(_, nodes)
     load_localization()
+    LowViolenceMode:ApplyRuntimeSettings()
 
     nodes[MENU_ID] = MenuHelper:BuildMenu(MENU_ID, {
         back_callback = "LowViolenceModeSave"

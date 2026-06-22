@@ -3,10 +3,6 @@ dofile(ModPath .. "modules/settings.lua")
 local LowViolenceMode = _G.LowViolenceMode
 
 local low_violence_original_gameplay_central_manager_init = GamePlayCentralManager.init
-local low_violence_original_play_bullet_hit = GamePlayCentralManager._play_bullet_hit
-local low_violence_original_play_impact_flesh = GamePlayCentralManager.play_impact_flesh
-local low_violence_original_play_impact_sound_and_effects = GamePlayCentralManager.play_impact_sound_and_effects
-local low_violence_original_sync_play_impact_flesh = GamePlayCentralManager.sync_play_impact_flesh
 
 local idstr_blood_spatter = Idstring("blood_spatter")
 local idstr_blood_screen = Idstring("effects/particles/character/player/blood_screen")
@@ -34,6 +30,8 @@ function LowViolenceMode.ApplyGamePlayCentralSettings(gameplay_central)
 
     gameplay_central._block_bullet_decals = LowViolenceMode:IsEnabled("blockBulletDecals") and true or original.block_bullet_decals
     gameplay_central._block_blood_decals = LowViolenceMode:IsEnabled("blockBloodDecals") and true or original.block_blood_decals
+
+    LowViolenceMode.InstallGamePlayCentralHooks(gameplay_central, gameplay_central ~= GamePlayCentralManager)
 end
 
 function GamePlayCentralManager:init(...)
@@ -179,57 +177,101 @@ local function play_synced_flesh_splatter(gameplay_central, from, dir)
     sound_source:post_event("bullet_hit")
 end
 
-function GamePlayCentralManager:play_impact_sound_and_effects(params)
-    if is_flesh_impact(self, params) then
-        if should_block_blood_splatter() then
-            return
-        end
-
-        if should_block_blood_decals() then
-            params.no_decal = true
-        end
-
-        return low_violence_original_play_impact_sound_and_effects(self, params)
-    end
-
-    if LowViolenceMode:IsEnabled("blockBulletDecals") and params then
-        params.no_decal = true
-    end
-
-    return low_violence_original_play_impact_sound_and_effects(self, params)
-end
-
-function GamePlayCentralManager:_play_bullet_hit(params)
-    if not should_block_bullet_hit_effects() or is_flesh_impact(self, params) or not self._play_effects then
-        return low_violence_original_play_bullet_hit(self, params)
-    end
-
-    local previous_effect_count = #self._play_effects
-    local result = low_violence_original_play_bullet_hit(self, params)
-
-    while #self._play_effects > previous_effect_count do
-        table.remove(self._play_effects)
-    end
-
-    return result
-end
-
-function GamePlayCentralManager:play_impact_flesh(params)
-    if should_block_blood_splatter() then
-        project_local_blood_decal(self, params and params.col_ray)
+local function install_method(target, method_name, make_wrapper, raw_only)
+    local original = raw_only and rawget(target, method_name) or target[method_name]
+    if not original then
         return
     end
 
-    return low_violence_original_play_impact_flesh(self, params)
-end
+    target._low_violence_gameplay_hooks = target._low_violence_gameplay_hooks or {}
+    local hooks = target._low_violence_gameplay_hooks
 
-function GamePlayCentralManager:sync_play_impact_flesh(from, dir)
-    if not should_block_blood_decals() and not should_block_blood_splatter() then
-        return low_violence_original_sync_play_impact_flesh(self, from, dir)
+    if original == hooks[method_name] then
+        return
     end
 
-    project_synced_blood_decal(self, from, dir)
-    play_synced_flesh_splatter(self, from, dir)
+    hooks[method_name .. "_original"] = original
+    hooks[method_name] = make_wrapper(original)
+    target[method_name] = hooks[method_name]
+end
+
+function LowViolenceMode.InstallGamePlayCentralHooks(gameplay_central, raw_only)
+    if not gameplay_central then
+        return
+    end
+
+    install_method(gameplay_central, "play_impact_sound_and_effects", function(original)
+        return function(self, params)
+            if is_flesh_impact(self, params) then
+                if should_block_blood_splatter() then
+                    return
+                end
+
+                if should_block_blood_decals() and params then
+                    params.no_decal = true
+                end
+
+                return original(self, params)
+            end
+
+            if LowViolenceMode:IsEnabled("blockBulletDecals") and params then
+                params.no_decal = true
+            end
+
+            return original(self, params)
+        end
+    end, raw_only)
+
+    install_method(gameplay_central, "_play_bullet_hit", function(original)
+        return function(self, params)
+            if is_flesh_impact(self, params) then
+                if should_block_blood_splatter() then
+                    return
+                end
+
+                if should_block_blood_decals() and params then
+                    params.no_decal = true
+                end
+
+                return original(self, params)
+            end
+
+            if not should_block_bullet_hit_effects() or not self._play_effects then
+                return original(self, params)
+            end
+
+            local previous_effect_count = #self._play_effects
+            local result = original(self, params)
+
+            while #self._play_effects > previous_effect_count do
+                table.remove(self._play_effects)
+            end
+
+            return result
+        end
+    end, raw_only)
+
+    install_method(gameplay_central, "play_impact_flesh", function(original)
+        return function(self, params)
+            if should_block_blood_splatter() then
+                project_local_blood_decal(self, params and params.col_ray)
+                return
+            end
+
+            return original(self, params)
+        end
+    end, raw_only)
+
+    install_method(gameplay_central, "sync_play_impact_flesh", function(original)
+        return function(self, from, dir)
+            if not should_block_blood_decals() and not should_block_blood_splatter() then
+                return original(self, from, dir)
+            end
+
+            project_synced_blood_decal(self, from, dir)
+            play_synced_flesh_splatter(self, from, dir)
+        end
+    end, raw_only)
 end
 
 LowViolenceMode.ApplyGamePlayCentralSettings(GamePlayCentralManager)

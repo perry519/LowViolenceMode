@@ -254,6 +254,10 @@ function LowViolenceMode:ApplyRuntimeSettings()
         self.ApplyEnemyManagerSettings(managers.enemy)
     end
 
+    if GamePlayCentralManager and self.ApplyGamePlayCentralSettings then
+        self.ApplyGamePlayCentralSettings(GamePlayCentralManager)
+    end
+
     if managers and managers.game_play_central and self.ApplyGamePlayCentralSettings then
         self.ApplyGamePlayCentralSettings(managers.game_play_central)
     end
