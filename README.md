@@ -1,5 +1,15 @@
 # Low Violence Mode
 
+![Low Violence Mode](docs/previews/thumb.png)
+
+<details>
+<summary>More images</summary>
+
+![Low Violence Mode preview 1](docs/previews/1.png)
+![Low Violence Mode preview 2](docs/previews/2.png)
+
+</details>
+
 PAYDAY 2 mod that reduces combat visual clutter.
 
 ## Requirements
